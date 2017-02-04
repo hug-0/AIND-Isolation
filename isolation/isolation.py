@@ -247,6 +247,10 @@ class Board(object):
 
         return 0.
 
+    def terminal_state(self, player):
+        """ Convenience function to test whether if game state is terminal."""
+        return self.get_legal_moves(player) == [(-1, -1)]
+
     def __get_moves__(self, move):
         """
         Generate the list of possible moves for an L-shaped motion (like a

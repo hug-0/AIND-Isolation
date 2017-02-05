@@ -7,7 +7,10 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
-from isolation_utilities import *
+import math
+
+# Import heuristics
+from heuristics import Heuristic
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
@@ -17,6 +20,8 @@ class Timeout(Exception):
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
+
+    Note: This simply calls the specified heuristic from the Heuristic class.
 
     Parameters
     ----------
@@ -34,21 +39,10 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
 
-    if game.is_loser(player):
-        return float('-inf')
+    # Create a heuristic object
+    heuristic = Heuristic(game, player)
 
-    if game.is_winner(player):
-        return float('inf')
-
-    # Heuristic (myMoves - 3*opMoves) * filledSpaces
-    filled_spaces = (game.width * game.height) - len(game.get_blank_spaces())
-    weight = 3
-    player_moves = len(game.get_legal_moves(player))
-    opponent_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    score = float((player_moves - weight * opponent_moves) * filled_spaces)
-
-    return score
-
+    return heuristic.score(game, player, method='the_super_duper_hugo_heuristic')
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
@@ -127,14 +121,33 @@ class CustomPlayer:
 
         self.time_left = time_left
 
-        # TODO: finish this function!
-
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
         if not legal_moves:
             return (-1, -1)
+
+        # Convenience vars
+        rows = [r for r in range(1, game.height)]
+        cols = [c for c in range(1, game.width)]
+
+        # If start of game, pick middle of board
+        if game.move_count == 0:
+            row = math.ceil(game.height / 2) # Pick middle row
+            col = math.ceil(game.width / 2) # Pick middle col
+            return (row, col)
+
+        # Strategy for initial moves
+        # 1. Setup all symmetrical possible moves
+        # 2. Check if symmetrical move is possible
+        # 3. Create opening book and rank opening moves
+
+        # Pick a move, in case we might timeout
+        move = legal_moves[0]
+
+        # Timeout threshold
+        timeout_threshold = 20 # ms
 
         try:
             # The search method call (alpha beta or minimax) should happen in
@@ -143,19 +156,33 @@ class CustomPlayer:
             # when the timer gets close to expiring
 
             if self.iterative:
-                # TODO: Implement iterative / progressive deepening
-                pass
+                current_depth = 0
+
+                if self.method == 'minimax':
+                    while self.time_left() > timeout_threshold:
+                        current_depth += 1
+                        _, move = self.minimax(game, current_depth)
+
+                    return move
+                if self.method == 'alphabeta':
+                    while self.time_left() > timeout_threshold:
+                        current_depth += 1
+                        _, move = self.alphabeta(game, current_depth)
+
+                    return move
             else:
                 if self.method == 'minimax':
                     _, move = self.minimax(game, self.search_depth)
+
                     return move
                 if self.method == 'alphabeta':
-                    # TODO: Implement in self.alphabeta()
-                    pass
+                    _, move = self.alphabeta(game, self.search_depth)
+
+                    return move
 
         except Timeout:
-            # Handle any actions required at timeout, if necessary
-            pass
+            # Timeout occurs --> return whichever is currently the best move.
+            return move
 
         # Return the best move from the last completed search iteration
         #raise NotImplementedError
@@ -194,7 +221,7 @@ class CustomPlayer:
         if depth == 0 or not legal_moves:
             return self.score(game, self), (-1, -1)
 
-        best_move = (-1, -1)#legal_moves[0]
+        best_move = legal_moves[0]
 
         if maximizing_player:
             best_value = float('-inf')
@@ -203,6 +230,7 @@ class CustomPlayer:
                 if value > best_value:
                     best_value = value
                     best_move = move
+
             return best_value, best_move
         else:
             best_value = float('inf')
@@ -211,6 +239,7 @@ class CustomPlayer:
                 if value < best_value:
                     best_value = value
                     best_move = move
+
             return best_value, best_move
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
@@ -267,6 +296,7 @@ class CustomPlayer:
                     best_move = move
                 if beta <= alpha:
                     break # Beta cut-off
+
             return value, best_move
         else:
             best_value = float('inf')
@@ -280,4 +310,5 @@ class CustomPlayer:
                     best_move = move
                 if beta <= alpha:
                     break # Alpha cut-off
+
             return best_value, best_move

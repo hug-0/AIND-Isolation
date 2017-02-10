@@ -60,7 +60,7 @@ class Heuristic:
         method : string
             Sets which evaluation function form to use to compute the score.
             Default : 'action_mobility'
-            Options : 'action_mobility', 'action_focus', 'the_super_duper_hugo_heuristic'
+            Options : 'action_mobility', 'action_focus', 'the_super_duper_hugo_heuristic', 'open_moves_ahead', 'open_moves'
 
         Returns
         ----------
@@ -70,7 +70,9 @@ class Heuristic:
         methods = {
             'action_mobility': self.action_mobility,
             'action_focus': self.action_focus,
-            'the_super_duper_hugo_heuristic': self.the_super_duper_hugo_heuristic
+            'open_moves': self.open_moves,
+            'the_super_duper_hugo_heuristic': self.the_super_duper_hugo_heuristic,
+            'open_moves_ahead': self.open_moves_ahead
         }
 
         if state.is_loser(player):
@@ -106,7 +108,53 @@ class Heuristic:
 
         return float(best_moves_ahead/len(legal_moves))
 
-    def the_super_duper_hugo_heuristic(self, state, weight=2.5):
+    def open_moves(self, state):
+        """Compute the current player's move advantage for a given game state.
+
+        Parameters
+        ----------
+        state : isolation.Board
+            An instance of `isolation.Board` encoding the current state of the
+            game (e.g., player locations and blocked cells).
+
+        Returns
+        ----------
+        float
+            The mobility heuristic score of the current game state.
+        """
+
+        player_moves = len(state.get_legal_moves())
+        opponent_moves = len(state.get_legal_moves(state.inactive_player))
+
+        return float(player_moves - opponent_moves)
+
+    def open_moves_ahead(self, state):
+        """Compute the current player's move advantage for a given game state by looking one step ahead.
+
+        Parameters
+        ----------
+        state : isolation.Board
+            An instance of `isolation.Board` encoding the current state of the
+            game (e.g., player locations and blocked cells).
+
+        Returns
+        ----------
+        float
+            The mobility heuristic score of the current game state.
+        """
+
+        legal_moves = state.get_legal_moves(state.active_player)
+        states_one_step_ahead = [state.forecast_move(move) for move in legal_moves]
+        best_moves_ahead = 0.
+        for future_state in states_one_step_ahead:
+            # Player changes after move, so we need to select the moves from the player in the current state
+            num_new_moves = len(future_state.get_legal_moves(future_state.inactive_player))
+            num_opp_moves = len(future_state.get_legal_moves(state.active_player))
+            best_moves_ahead = max(best_moves_ahead, num_new_moves - num_opp_moves)
+
+        return float(best_moves_ahead)
+
+    def the_super_duper_hugo_heuristic(self, state, weight=3.):
         """A custom heuristic not found in literature. It augments the common heuristic (player_moves - opponent_moves) and weights opponent's moves higher, and scales the resulting value by the number of filled spaces.
 
         Parameters
@@ -123,6 +171,7 @@ class Heuristic:
         float
             The heuristic score of the current game state.
         """
+
         filled_spaces = (state.width * state.height) - len(state.get_blank_spaces())
         player_moves = len(state.get_legal_moves())
         opponent_moves = len(state.get_legal_moves(state.get_opponent(state.inactive_player)))

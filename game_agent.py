@@ -42,7 +42,13 @@ def custom_score(game, player):
     # Create a heuristic object
     heuristic = Heuristic(game, player)
 
-    return heuristic.score(game, player, method='the_super_duper_hugo_heuristic')
+    open_spaces = float(len(game.get_blank_spaces()))
+    total_spaces = float(game.width * game.height)
+
+    if open_spaces > total_spaces*0.75:
+        return heuristic.score(game, player, method='open_moves_ahead')
+    else:
+        return heuristic.score(game, player, method='the_super_duper_hugo_heuristic')
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
@@ -132,7 +138,7 @@ class CustomPlayer:
         rows = [r for r in range(1, game.height)]
         cols = [c for c in range(1, game.width)]
 
-        # If start of game, pick middle of board
+        # If start of game, pick middle of board # Won't ever be used in tournament.py
         if game.move_count == 0:
             row = math.ceil(game.height / 2) # Pick middle row
             col = math.ceil(game.width / 2) # Pick middle col

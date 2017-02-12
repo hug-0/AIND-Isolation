@@ -45,10 +45,10 @@ def custom_score(game, player):
     open_spaces = float(len(game.get_blank_spaces()))
     total_spaces = float(game.width * game.height)
 
-    if open_spaces > total_spaces*0.75:
-        return heuristic.score(game, player, method='open_moves_ahead')
+    if open_spaces > total_spaces*0.5:
+        return heuristic.score(game, player, method='open_moves')
     else:
-        return heuristic.score(game, player, method='the_super_duper_hugo_heuristic')
+        return heuristic.score(game, player,  method='the_super_duper_hugo_heuristic')
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
@@ -134,26 +134,24 @@ class CustomPlayer:
         if not legal_moves:
             return (-1, -1)
 
-        # Convenience vars
-        rows = [r for r in range(1, game.height)]
-        cols = [c for c in range(1, game.width)]
-
         # If start of game, pick middle of board # Won't ever be used in tournament.py
         if game.move_count == 0:
             row = math.ceil(game.height / 2) # Pick middle row
             col = math.ceil(game.width / 2) # Pick middle col
             return (row, col)
 
-        # Strategy for initial moves
-        # 1. Setup all symmetrical possible moves
-        # 2. Check if symmetrical move is possible
-        # 3. Create opening book and rank opening moves
+        # TODO future:
+        #   Strategy for initial moves
+        #       1. Setup all symmetrical possible moves
+        #       2. Check if symmetrical move is possible
+        #       3. Create opening book and rank opening moves
+        #       4. Keep a transposition table for previous game states
 
         # Pick a move, in case we might timeout
         move = legal_moves[0]
 
-        # Timeout threshold
-        timeout_threshold = 20 # ms
+        # Timeout threshold to avoid forfeiture
+        timeout_threshold = 20. # ms
 
         try:
             # The search method call (alpha beta or minimax) should happen in
@@ -189,9 +187,6 @@ class CustomPlayer:
         except Timeout:
             # Timeout occurs --> return whichever is currently the best move.
             return move
-
-        # Return the best move from the last completed search iteration
-        #raise NotImplementedError
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.

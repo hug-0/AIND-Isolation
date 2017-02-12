@@ -180,7 +180,3 @@ class Heuristic:
 
     def action_focus(self, state):
         return 1. - self.action_mobility(state)
-
-    def state_focus(self, state):
-        # TODO
-        pass
